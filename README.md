@@ -18,4 +18,6 @@ Boards 4-12 across; flags capped at mine count, opened squares cannot be flagged
 
     python3 -m unittest -v test_minesmurre.py
 
-Core 16 tests plus terminal/pixel and input-flow smoke on Linux. Version 1.1.0 adds curses presentation and games category while keeping existing core rules. Linux tested; physical Raspberry Pi and non-Linux untested. curses may not be installed on non-Linux; use --plain. Terminal app only; no desktop required.
+Core 17 tests plus terminal/pixel and input-flow smoke on Linux. Version 1.1.1 adds curses presentation and games category while keeping existing core rules. Linux tested; physical Raspberry Pi and non-Linux untested. curses may not be installed on non-Linux; use --plain. Terminal app only; no desktop required.
+
+1.1.1: when curses is missing, imports no longer fail before --plain can run. Coordinate mode is chosen automatically and remains usable without curses. Regression test covers missing-module fallback.
