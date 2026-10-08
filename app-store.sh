@@ -1,5 +1,6 @@
 #!/bin/bash
 # pi-app-store: 1
+# pi-app-store-category: games
 set -eu
 cd -- "$(dirname -- "$0")"
 case "${1:-}" in
