@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Minesmurre: offline mines puzzle with a safe first reveal."""
-import argparse,collections,random,sys
+import argparse,collections,random,sys,os,curses
 class Game:
     def __init__(self,size=8,mines=10,seed=None):
         if type(size) is not int or not 4<=size<=12:raise ValueError('Size must be 4-12.')
@@ -56,7 +56,7 @@ class Game:
         print('Mines:',self.count,'| Flags:',len(self.flags),'| Revealed:',len(self.open),'| Actions:',self.actions)
         print('R row col reveal | F row col toggle flag | Q quit. Coordinates start at 1.')
 
-def main(argv=None):
+def plain_main(argv=None):
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--size',type=int,default=8);p.add_argument('--mines',type=int,default=10);p.add_argument('--seed',type=int);p.add_argument('--demo',action='store_true');a=p.parse_args(argv)
     try:
         g=Game(a.size,a.mines,a.seed)
@@ -77,4 +77,56 @@ def main(argv=None):
     except (EOFError,KeyboardInterrupt):print('\nBye.')
     except ValueError as exc:print('Error:',exc,file=sys.stderr);return 2
     return 0
+
+
+def paint(stdscr,g,cursor,message):
+    stdscr.erase();h,w=stdscr.getmaxyx()
+    if h<g.size+10 or w<max(56,g.size*4+10):
+        stdscr.addnstr(0,0,"Resize terminal (at least %dx%d); Q exits."%(max(56,g.size*4+10),g.size+10),max(0,w-1));stdscr.refresh();return
+    x=(w-g.size*4)//2;y=5
+    stdscr.addstr(1,3," M I N E S M U R R E ",curses.color_pair(1)|curses.A_BOLD)
+    stdscr.addstr(2,3,"Reveal the safe squares. First reveal + neighbors are safe.")
+    stdscr.addstr(3,3,f"{g.count} mines   {len(g.flags)} flags   {len(g.open)} revealed   {g.actions} moves",curses.color_pair(1))
+    for r in range(g.size):
+        for c in range(g.size):
+            p=r,c;v="?";color=2
+            if g.lost and g.mines is not None and p in g.mines:v="*";color=3
+            elif p in g.flags:v="F";color=4
+            elif p in g.open:
+                n=g.number(p);v=str(n) if n else ".";color=1 if n else 2
+            style=curses.color_pair(color)|curses.A_BOLD
+            if p==cursor:style|=curses.A_REVERSE
+            stdscr.addstr(y+r,x+c*4," "+v+" ",style)
+    ended=g.lost or g.won()
+    text="Mine hit. R starts a new board." if g.lost else "All safe squares revealed. Won! R starts again." if g.won() else message
+    stdscr.addnstr(y+g.size+1,3,text,w-6,curses.color_pair(3 if g.lost else 4 if g.won() else 1))
+    stdscr.addstr(h-3,3,"Arrows / WASD move   Space / Enter reveal   F flag")
+    stdscr.addstr(h-2,3,"R new board   Q quit   --plain for typed coordinates")
+    stdscr.refresh()
+def terminal(stdscr,size,mines,seed):
+    curses.curs_set(0)
+    if curses.has_colors():
+        curses.start_color();curses.use_default_colors()
+        for i,fg in enumerate((curses.COLOR_CYAN,curses.COLOR_WHITE,curses.COLOR_RED,curses.COLOR_YELLOW),1):curses.init_pair(i,fg,-1)
+    g=Game(size,mines,seed);cursor=(0,0);message="No mines placed yet. Choose a square."
+    while True:
+        paint(stdscr,g,cursor,message);key=stdscr.getch()
+        if key in (ord('q'),ord('Q')):return
+        if key in (ord('r'),ord('R')):g=Game(size,mines,seed);cursor=(0,0);message="New board. First reveal is safe.";continue
+        delta={curses.KEY_UP:(-1,0),ord('w'):(-1,0),curses.KEY_DOWN:(1,0),ord('s'):(1,0),curses.KEY_LEFT:(0,-1),ord('a'):(0,-1),curses.KEY_RIGHT:(0,1),ord('d'):(0,1)}.get(key)
+        if delta:cursor=(max(0,min(size-1,cursor[0]+delta[0])),max(0,min(size-1,cursor[1]+delta[1])))
+        elif key in (10,13,32,ord('f'),ord('F')):
+            try:
+                if key in (ord('f'),ord('F')):g.flag(*cursor);message="Flag toggled."
+                else:g.reveal(*cursor);message="Square revealed."
+            except ValueError as e:message=str(e)
+def main(argv=None):
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--size',type=int,default=8);p.add_argument('--mines',type=int,default=10);p.add_argument('--seed',type=int);p.add_argument('--plain',action='store_true');p.add_argument('--demo',action='store_true');a=p.parse_args(argv)
+    args=['--size',str(a.size),'--mines',str(a.mines)]+(['--seed',str(a.seed)] if a.seed is not None else [])+(['--demo'] if a.demo else [])
+    if a.plain or a.demo or not sys.stdin.isatty() or not sys.stdout.isatty() or os.environ.get('TERM') in (None,'dumb'):return plain_main(args)
+    try:
+        Game(a.size,a.mines,a.seed);curses.wrapper(terminal,a.size,a.mines,a.seed);return 0
+    except ValueError as e:print(e,file=sys.stderr);return 2
+    except curses.error:print('Terminal initialization failed. Retry with --plain.',file=sys.stderr);return 2
+    except KeyboardInterrupt:return 0
 if __name__=='__main__':raise SystemExit(main())
