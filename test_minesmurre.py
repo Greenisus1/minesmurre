@@ -37,3 +37,12 @@ class MineTests(unittest.TestCase):
     def test_cli(self):r=subprocess.run([sys.executable,'minesmurre.py','--seed','1'],input='r 1 1\nq\n',capture_output=True,text=True);self.assertEqual(r.returncode,0);self.assertIn('MINESMURRE',r.stdout)
     def test_demo(self):r=subprocess.run([sys.executable,'minesmurre.py','--demo','--seed','1'],capture_output=True,text=True);self.assertEqual(r.returncode,0);self.assertIn('Revealed:',r.stdout)
 if __name__=='__main__':unittest.main()
+
+class FallbackTests(unittest.TestCase):
+ def test_no_curses_demo(self):
+  import minesmurre,io
+  from unittest.mock import patch
+  from contextlib import redirect_stdout
+  with patch.object(minesmurre,'curses',None),redirect_stdout(io.StringIO()) as out:
+   self.assertEqual(minesmurre.main(['--demo','--seed','42']),0)
+  self.assertIn('MINESMURRE',out.getvalue())
