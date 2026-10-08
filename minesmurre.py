@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Minesmurre: offline mines puzzle with a safe first reveal."""
-import argparse,collections,random,sys,os,curses
+import argparse,collections,random,sys,os
+try:import curses
+except ImportError:curses=None
 class Game:
     def __init__(self,size=8,mines=10,seed=None):
         if type(size) is not int or not 4<=size<=12:raise ValueError('Size must be 4-12.')
@@ -123,7 +125,7 @@ def terminal(stdscr,size,mines,seed):
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--size',type=int,default=8);p.add_argument('--mines',type=int,default=10);p.add_argument('--seed',type=int);p.add_argument('--plain',action='store_true');p.add_argument('--demo',action='store_true');a=p.parse_args(argv)
     args=['--size',str(a.size),'--mines',str(a.mines)]+(['--seed',str(a.seed)] if a.seed is not None else [])+(['--demo'] if a.demo else [])
-    if a.plain or a.demo or not sys.stdin.isatty() or not sys.stdout.isatty() or os.environ.get('TERM') in (None,'dumb'):return plain_main(args)
+    if curses is None or a.plain or a.demo or not sys.stdin.isatty() or not sys.stdout.isatty() or os.environ.get('TERM') in (None,'dumb'):return plain_main(args)
     try:
         Game(a.size,a.mines,a.seed);curses.wrapper(terminal,a.size,a.mines,a.seed);return 0
     except ValueError as e:print(e,file=sys.stderr);return 2
