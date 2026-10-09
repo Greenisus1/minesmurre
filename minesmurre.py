@@ -85,7 +85,7 @@ def paint(stdscr,g,cursor,message):
     stdscr.erase();h,w=stdscr.getmaxyx()
     if h<g.size+10 or w<max(56,g.size*4+10):
         stdscr.addnstr(0,0,"Resize terminal (at least %dx%d); Q exits."%(max(56,g.size*4+10),g.size+10),max(0,w-1));stdscr.refresh();return
-    x=(w-g.size*4)//2;y=5
+    cw=max(4,(w-6)//g.size);rh=max(1,(h-10)//g.size);x=(w-g.size*cw)//2;y=5
     stdscr.addstr(1,3," M I N E S M U R R E ",curses.color_pair(1)|curses.A_BOLD)
     stdscr.addstr(2,3,"Reveal the safe squares. First reveal + neighbors are safe.")
     stdscr.addstr(3,3,f"{g.count} mines   {len(g.flags)} flags   {len(g.open)} revealed   {g.actions} moves",curses.color_pair(1))
@@ -98,10 +98,10 @@ def paint(stdscr,g,cursor,message):
                 n=g.number(p);v=str(n) if n else ".";color=1 if n else 2
             style=curses.color_pair(color)|curses.A_BOLD
             if p==cursor:style|=curses.A_REVERSE
-            stdscr.addstr(y+r,x+c*4," "+v+" ",style)
+            for dy in range(rh):stdscr.addstr(y+r*rh+dy,x+c*cw,v.center(cw-1),style)
     ended=g.lost or g.won()
     text="Mine hit. R starts a new board." if g.lost else "All safe squares revealed. Won! R starts again." if g.won() else message
-    stdscr.addnstr(y+g.size+1,3,text,w-6,curses.color_pair(3 if g.lost else 4 if g.won() else 1))
+    stdscr.addnstr(h-4,3,text,w-6,curses.color_pair(3 if g.lost else 4 if g.won() else 1))
     stdscr.addstr(h-3,3,"Arrows / WASD move   Space / Enter reveal   F flag")
     stdscr.addstr(h-2,3,"R new board   Q quit   --plain for typed coordinates")
     stdscr.refresh()
@@ -114,6 +114,8 @@ def terminal(stdscr,size,mines,seed):
     while True:
         paint(stdscr,g,cursor,message);key=stdscr.getch()
         if key in (ord('q'),ord('Q')):return
+        h,w=stdscr.getmaxyx()
+        if h<size+10 or w<max(56,size*4+10):continue
         if key in (ord('r'),ord('R')):g=Game(size,mines,seed);cursor=(0,0);message="New board. First reveal is safe.";continue
         delta={curses.KEY_UP:(-1,0),ord('w'):(-1,0),curses.KEY_DOWN:(1,0),ord('s'):(1,0),curses.KEY_LEFT:(0,-1),ord('a'):(0,-1),curses.KEY_RIGHT:(0,1),ord('d'):(0,1)}.get(key)
         if delta:cursor=(max(0,min(size-1,cursor[0]+delta[0])),max(0,min(size-1,cursor[1]+delta[1])))
