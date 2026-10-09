@@ -21,3 +21,5 @@ Boards 4-12 across; flags capped at mine count, opened squares cannot be flagged
 Core 17 tests plus terminal/pixel and input-flow smoke on Linux. Version 1.1.1 adds curses presentation and games category while keeping existing core rules. Linux tested; physical Raspberry Pi and non-Linux untested. curses may not be installed on non-Linux; use --plain. Terminal app only; no desktop required.
 
 1.1.1: when curses is missing, imports no longer fail before --plain can run. Coordinate mode is chosen automatically and remains usable without curses. Regression test covers missing-module fallback.
+
+Fullscreen update: Store interactive launch uses terminal-sized board cells or wrapped full-terminal utility input/results with PgUp/PgDn scrolling. Original core rules and direct CLI commands remain unchanged. Ctrl+C cancels utility entry, result Enter returns; no new dependency downloads. Linux PTY resize/restoration checked; physical Pi untested.
